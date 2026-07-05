@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+release/
+
+# Runtime data (user-generated, not tracked)
+data/db/*.db
+data/logs/*.log
+data/logs/*.gz
+data/config/window-state.json
+data/config/settings.json
+data/plugins/*
+!data/plugins/.gitkeep
+data/commands/*.json
+!data/commands/.gitkeep
+data/workflows/*.json
+!data/workflows/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python
+*.pyc
+__pycache__/
+
+# Archival
+*.tar.gz
+*.zip
+
+# Vite
+.vite/

@@ -1,0 +1,13 @@
+[
+  { "action": "command-palette", "keys": "Ctrl+Space", "scope": "global", "profile": "default" },
+  { "action": "toggle-quake-terminal", "keys": "Ctrl+Shift+Space", "scope": "global", "profile": "default" },
+  { "action": "open-group-development", "keys": "Ctrl+Shift+1", "scope": "global", "profile": "default" },
+  { "action": "open-group-gaming", "keys": "Ctrl+Shift+2", "scope": "global", "profile": "default" },
+  { "action": "open-group-media", "keys": "Ctrl+Shift+3", "scope": "global", "profile": "default" },
+  { "action": "open-group-communication", "keys": "Ctrl+Shift+4", "scope": "global", "profile": "default" },
+  { "action": "settings", "keys": "Ctrl+Shift+S", "scope": "global", "profile": "default" },
+  { "action": "clipboard", "keys": "Ctrl+Shift+C", "scope": "global", "profile": "default" },
+  { "action": "notifications", "keys": "Ctrl+Shift+N", "scope": "global", "profile": "default" },
+  { "action": "ai-assistant", "keys": "Ctrl+Shift+A", "scope": "global", "profile": "default" },
+  { "action": "focus-mode", "keys": "Ctrl+Shift+F", "scope": "global", "profile": "default" }
+]

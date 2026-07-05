@@ -1,0 +1,7 @@
+{
+  "brandName": "Vanta Suite",
+  "appId": "com.vanta-suite.app",
+  "configFolder": "vanta-suite",
+  "windowTitle": "Vanta Suite",
+  "logPrefix": "vanta-suite"
+}

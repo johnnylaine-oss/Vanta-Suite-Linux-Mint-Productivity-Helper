@@ -1,0 +1,13 @@
+{
+  "Ctrl+Space": "command-palette",
+  "Ctrl+Shift+Space": "toggle-quake-terminal",
+  "Ctrl+Shift+1": "open-group-development",
+  "Ctrl+Shift+2": "open-group-gaming",
+  "Ctrl+Shift+3": "open-group-media",
+  "Ctrl+Shift+4": "open-group-communication",
+  "Ctrl+Shift+S": "settings",
+  "Ctrl+Shift+C": "clipboard",
+  "Ctrl+Shift+N": "notifications",
+  "Ctrl+Shift+A": "ai-assistant",
+  "Ctrl+Shift+F": "focus-mode"
+}

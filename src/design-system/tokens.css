@@ -1,0 +1,158 @@
+/* Vanta Gold — locked design tokens. Import once, globally. Do not override per-component. */
+:root {
+  /* Backgrounds */
+  --bg-void: #0A0A0C;
+  --bg-surface: #121214;
+  --bg-surface-2: #1A1A1D;
+  --bg-hairline: #2A2A2E;
+
+  /* Gold accent system */
+  --gold-bright: #F4D68C;
+  --gold-core: #D4AF37;
+  --gold-deep: #A67C27;
+  --gold-metal-gradient: linear-gradient(135deg, #F4D68C 0%, #D4AF37 45%, #A67C27 100%);
+
+  /* Text */
+  --text-primary: #F5F1E8;
+  --text-secondary: #A8A69E;
+  --text-disabled: #5C5A54;
+
+  /* Functional */
+  --state-success: #7FA88A;
+  --state-error: #C46B5F;
+  --state-warning: #D4AF37;
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Elevation */
+  --elevation-1: 0 1px 2px rgba(0,0,0,0.4);
+  --elevation-2: 0 4px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.05);
+  --elevation-3: 0 12px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.10);
+
+  /* Motion */
+  --motion-fast: 150ms ease-out;
+  --motion-normal: 250ms ease-out;
+}
+
+/* Light mode — same gold system, warm off-white surfaces */
+:root[data-theme="light"] {
+  --bg-void: #F5F1E8;
+  --bg-surface: #EDE8DC;
+  --bg-surface-2: #E4DECC;
+  --bg-hairline: #D8D0BC;
+  --text-primary: #201F1C;
+  --text-secondary: #5C5A54;
+  --text-disabled: #A8A69E;
+}
+
+/* Reduced motion — respected globally */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+  }
+}
+
+.app-shell {
+  background: radial-gradient(ellipse at top, #16161A 0%, #0A0A0C 60%);
+}
+
+.v-glass {
+  background: rgba(18, 18, 20, 0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+}
+
+.v-divider--gold {
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+  height: 1px;
+  border: none;
+}
+
+/* ---- Accessibility ---- */
+
+/* Skip-to-content: hidden offscreen until focused */
+.v-skip-link {
+  position: absolute; top: -9999px; left: -9999px;
+  z-index: 9999;
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-surface);
+  color: var(--gold-core);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid var(--gold-core);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+.v-skip-link:focus {
+  top: var(--space-2);
+  left: var(--space-2);
+}
+
+/* Universal gold focus ring — use instead of default browser focus styles */
+.v-focus-ring:focus-visible {
+  outline: none;
+  border-color: var(--gold-core);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+}
+
+/* Global focus-visible for interactive elements */
+*:focus-visible {
+  outline: 2px solid var(--gold-core);
+  outline-offset: 2px;
+}
+
+/* Screen reader only */
+.v-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Reduced motion — respected globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Selection color */
+::selection {
+  background: rgba(212, 175, 55, 0.25);
+  color: var(--text-primary);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hairline);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--gold-deep); }
