@@ -79,6 +79,11 @@ function registerIpcHandlers() {
   ipcMain.on(IPC_CHANNELS.WINDOW_HIDE, () => { const w = getMainWindow(); if (w) w.hide(); });
   ipcMain.on(IPC_CHANNELS.WINDOW_SHOW, () => { const w = getMainWindow(); if (w) { w.show(); w.focus(); } });
   ipcMain.on(IPC_CHANNELS.WINDOW_TOGGLE, () => { const w = getMainWindow(); if (w) { w.isVisible() ? w.hide() : (w.show(), w.focus()); } });
+  // Minimize behaves as "minimize to tray" — the daemon keeps running and
+  // the tray icon on the right of the Linux Mint bottom panel stands in for
+  // the window (same paradigm as WhatsApp, Slack, etc.).
+  ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, () => { const w = getMainWindow(); if (w) w.hide(); });
+  ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, () => { const w = getMainWindow(); if (w && !w.isDestroyed()) { if (w.isMaximized()) w.unmaximize(); else w.maximize(); } });
 
   // Shell/Path/URL
   ipcMain.handle(IPC_CHANNELS.SHELL_EXEC, async (_e, cmd, needsConfirm) => {

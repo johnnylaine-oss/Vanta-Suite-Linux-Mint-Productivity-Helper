@@ -41,7 +41,18 @@
 
       <VStatusBar>
         <span>{{ theme === 'dark' ? '🌙' : '☀️' }} {{ activeModule || 'Home' }}</span>
-        <span>Vanta Suite v1.0.0</span>
+        <span class="app-statusbar__right">
+          <span class="app-statusbar__version">Vanta Suite v1.0.0</span>
+          <VIconButton
+            size="sm"
+            variant="ghost"
+            label="Minimize to tray"
+            class="app-statusbar__minimize"
+            @click="onMinimizeToTray"
+          >
+            &#x2014;
+          </VIconButton>
+        </span>
       </VStatusBar>
     </VWindow>
 
@@ -303,7 +314,11 @@ function showConfirmation(message, detail = '') {
 }
 
 // --- Window controls ---
-function onMinimize() { window.vanta?.window?.minimize(); }
+// In this daemon model, minimize/close both hide() the window — the app
+// stays alive and reappears from the tray icon on the right of the Linux
+// Mint bottom panel (same paradigm as WhatsApp, Slack, etc.).
+function onMinimize() { window.vanta?.window?.hide(); }
+function onMinimizeToTray() { window.vanta?.window?.hide(); }
 function onMaximize() { window.vanta?.window?.maximize(); }
 function onClose() { window.vanta?.window?.hide(); }
 
@@ -419,6 +434,8 @@ onMounted(async () => {
 .var-prompt__actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-3); }
 .confirm-modal__detail { margin-top: var(--space-3); }
 .confirm-modal__detail code { font-family: var(--font-mono); font-size: 13px; color: var(--gold-core); background: var(--bg-surface-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); display: block; word-break: break-all; }
+.app-statusbar__right { display: inline-flex; align-items: center; gap: var(--space-1); }
+.app-statusbar__version { color: var(--text-tertiary); }
 
 /* Page transitions */
 .page-fade-enter-active { transition: opacity 0.15s ease-out, transform 0.15s ease-out; }

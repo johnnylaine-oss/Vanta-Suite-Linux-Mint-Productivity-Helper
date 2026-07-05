@@ -1,12 +1,20 @@
 // Vanta Suite — System Tray.
 // Creates and manages the system tray icon with a context menu.
 // The tray persists even when the main window is hidden.
+// On Linux Mint Cinnamon the icon appears on the right side of the
+// bottom panel (System Tray applet) — same area as WhatsApp et al.
 
 import { Tray, Menu, nativeImage, app } from 'electron';
+import { join, dirname } from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { createPNG } from './pngEncoder.js';
 import logger from '../core/logger.js';
 import { BRAND_NAME } from '../config/brand.js';
 import { getMainWindow } from './windowManager.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let tray = null;
 
@@ -16,9 +24,9 @@ let tray = null;
  * @returns {Tray}
  */
 export function createTray(mainWindow) {
-  // Create a simple 16x16 gold square icon programmatically
-  // In production, use a proper icon file
-  const icon = nativeImage.createFromDataURL(createTrayIconDataUrl());
+  // Prefer the project icon at multiple sizes. If the asset is missing,
+  // fall back to a programmatic gold gradient so the tray is never empty.
+  const icon = loadTrayIcon();
 
   tray = new Tray(icon);
   tray.setToolTip(BRAND_NAME);
@@ -98,11 +106,32 @@ export function updateTrayMenu(tray, mainWindow, isWindowVisible) {
 }
 
 /**
+ * Load the tray icon. Uses the project icon asset when available so the icon
+ * renders crisply at small sizes in the system tray. Falls back to a
+ * generated gold gradient if the asset is missing.
+ * @returns {Electron.NativeImage}
+ */
+function loadTrayIcon() {
+  const iconPath = join(__dirname, '..', '..', 'assets', 'icon.png');
+  if (existsSync(iconPath)) {
+    const image = nativeImage.createFromPath(iconPath);
+    if (!image.isEmpty()) {
+      // Resize to common tray sizes for crisp rendering
+      const resized = image.resize({ width: 64, height: 64, quality: 'best' });
+      logger.info('tray', 'Loaded tray icon from assets/icon.png');
+      return resized.isEmpty() ? image : resized;
+    }
+  }
+  logger.warn('tray', 'Tray icon asset missing — falling back to generated icon');
+  return nativeImage.createFromDataURL(createFallbackIconDataUrl());
+}
+
+/**
  * Generate a data URL for a simple gold tray icon.
- * In production, replace with a proper .png icon file.
+ * Used only as a fallback when assets/icon.png is missing.
  * @returns {string} data:image/png;base64,...
  */
-function createTrayIconDataUrl() {
+function createFallbackIconDataUrl() {
   const size = 16;
   const canvas = Buffer.alloc(size * size * 4);
 
