@@ -19,6 +19,64 @@ const __dirname = dirname(__filename);
 let tray = null;
 
 /**
+ * Cached 128x128 base icon as a data URL. The renderer composites this
+ * with a notification badge and ships the result back via TRAY_SET_ICON.
+ */
+let _baseIconDataUrl = '';
+function ensureBaseIconDataUrl() {
+  if (_baseIconDataUrl) return _baseIconDataUrl;
+  const iconPath = join(__dirname, '..', '..', 'assets', 'icon.png');
+  if (existsSync(iconPath)) {
+    const image = nativeImage.createFromPath(iconPath);
+    if (!image.isEmpty()) {
+      const sized = image.resize({ width: 128, height: 128, quality: 'best' });
+      _baseIconDataUrl = sized.toDataURL();
+      return _baseIconDataUrl;
+    }
+  }
+  return '';
+}
+
+/**
+ * Return the base icon data URL so the renderer can composite a badge over it.
+ */
+export function getBaseTrayIconDataUrl() {
+  return ensureBaseIconDataUrl();
+}
+
+/**
+ * Apply a new tray icon image (typically a data URL produced by the renderer
+ * with a notification badge overlay).
+ * @param {string} dataUrl
+ */
+export function setTrayImage(dataUrl) {
+  if (!tray || tray.isDestroyed() || !dataUrl) return false;
+  try {
+    const image = nativeImage.createFromDataURL(dataUrl);
+    if (image.isEmpty()) return false;
+    tray.setImage(image);
+    return true;
+  } catch (err) {
+    logger.warn('tray', 'Failed to set tray image', { error: err.message });
+    return false;
+  }
+}
+
+/**
+ * Restore the flat base icon (no badge).
+ */
+export function resetTrayImage() {
+  if (!tray || tray.isDestroyed()) return;
+  const base = ensureBaseIconDataUrl();
+  if (!base) return;
+  try {
+    tray.setImage(nativeImage.createFromDataURL(base));
+  } catch (err) {
+    logger.warn('tray', 'Failed to reset tray image', { error: err.message });
+  }
+}
+
+/**
  * Create the system tray icon and menu.
  * @param {BrowserWindow} mainWindow - Reference to the main renderer window
  * @returns {Tray}
@@ -73,7 +131,7 @@ export function updateTrayMenu(tray, mainWindow, isWindowVisible) {
     { type: 'separator' },
     {
       label: 'Command Palette',
-      accelerator: 'Ctrl+Space',
+      accelerator: 'Super+Space',
       click: () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.show();

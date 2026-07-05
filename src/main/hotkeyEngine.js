@@ -73,6 +73,16 @@ function loadShortcuts() {
         profile: activeProfile,
       }));
     }
+
+    // Migrate legacy Ctrl-based global bindings to Super to match the new defaults.
+    if (migrateLegacyCtrlBindings(activeBindings)) {
+      try {
+        writeFileSync(shortcutsPath, JSON.stringify(activeBindings, null, 2), 'utf-8');
+        logger.info('hotkey-engine', 'Migrated legacy Ctrl+ global shortcuts to Super+');
+      } catch (err) {
+        logger.warn('hotkey-engine', 'Failed to persist migrated shortcuts', { error: err.message });
+      }
+    }
   } catch (err) {
     logger.error('hotkey-engine', 'Failed to load shortcuts', { error: err.message });
     activeBindings = getDefaultShortcuts();
@@ -81,21 +91,40 @@ function loadShortcuts() {
 
 /**
  * Get sensible default shortcuts as array format.
+ * All global bindings use the Super key so they remain accessible without
+ * conflicting with text editor / IDE Ctrl-combos.
  */
 function getDefaultShortcuts() {
   return [
-    { action: 'command-palette', keys: 'Ctrl+Space', scope: 'global', profile: 'default' },
-    { action: 'toggle-quake-terminal', keys: 'Ctrl+Shift+Space', scope: 'global', profile: 'default' },
-    { action: 'open-group-development', keys: 'Ctrl+Shift+1', scope: 'global', profile: 'default' },
-    { action: 'open-group-gaming', keys: 'Ctrl+Shift+2', scope: 'global', profile: 'default' },
-    { action: 'open-group-media', keys: 'Ctrl+Shift+3', scope: 'global', profile: 'default' },
-    { action: 'open-group-communication', keys: 'Ctrl+Shift+4', scope: 'global', profile: 'default' },
-    { action: 'settings', keys: 'Ctrl+Shift+S', scope: 'global', profile: 'default' },
-    { action: 'clipboard', keys: 'Ctrl+Shift+C', scope: 'global', profile: 'default' },
-    { action: 'notifications', keys: 'Ctrl+Shift+N', scope: 'global', profile: 'default' },
-    { action: 'ai-assistant', keys: 'Ctrl+Shift+A', scope: 'global', profile: 'default' },
-    { action: 'focus-mode', keys: 'Ctrl+Shift+F', scope: 'global', profile: 'default' },
+    { action: 'command-palette', keys: 'Super+Space', scope: 'global', profile: 'default' },
+    { action: 'toggle-quake-terminal', keys: 'Super+Shift+Space', scope: 'global', profile: 'default' },
+    { action: 'open-group-development', keys: 'Super+Shift+1', scope: 'global', profile: 'default' },
+    { action: 'open-group-gaming', keys: 'Super+Shift+2', scope: 'global', profile: 'default' },
+    { action: 'open-group-media', keys: 'Super+Shift+3', scope: 'global', profile: 'default' },
+    { action: 'open-group-communication', keys: 'Super+Shift+4', scope: 'global', profile: 'default' },
+    { action: 'settings', keys: 'Super+Shift+S', scope: 'global', profile: 'default' },
+    { action: 'clipboard', keys: 'Super+Shift+C', scope: 'global', profile: 'default' },
+    { action: 'notifications', keys: 'Super+Shift+N', scope: 'global', profile: 'default' },
+    { action: 'ai-assistant', keys: 'Super+Shift+A', scope: 'global', profile: 'default' },
+    { action: 'focus-mode', keys: 'Super+Shift+F', scope: 'global', profile: 'default' },
   ];
+}
+
+/**
+ * Migrate legacy "Ctrl+..." global bindings to "Super+..." so existing users
+ * get the new behavior on next launch without manual editing.
+ * App-focused (in-app) bindings are left alone — Ctrl is the conventional
+ * text-editor modifier and we keep those stable.
+ */
+function migrateLegacyCtrlBindings(bindings) {
+  let changed = false;
+  for (const b of bindings) {
+    if (b.scope === 'global' && /^Ctrl\+/i.test(b.keys || '')) {
+      b.keys = b.keys.replace(/^Ctrl\+/i, 'Super+');
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 /**

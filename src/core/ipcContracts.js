@@ -111,6 +111,11 @@ export const IPC_CHANNELS = {
   // Module
   MODULE_OPEN: 'module:open',
 
+  // Tray
+  TRAY_SET_ICON: 'tray:set-icon',
+  TRAY_GET_ICON: 'tray:get-icon',
+  TRAY_READY: 'tray:ready',
+
   // System
   SHELL_EXEC: 'shell:exec',
   PATH_OPEN: 'path:open',
@@ -134,4 +139,7 @@ export const IPC_EVENTS = {
   WORKFLOW_STEP_COMPLETED: 'workflow:step:completed',
   WORKFLOW_STEP_ERROR: 'workflow:step:error',
   WORKFLOW_COMPLETED: 'workflow:completed',
+
+  // Tray badge updates (main → renderer)
+  TRAY_BADGE_UPDATE: 'tray:badge-update',
 };

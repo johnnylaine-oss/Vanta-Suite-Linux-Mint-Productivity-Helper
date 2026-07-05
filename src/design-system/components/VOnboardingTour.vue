@@ -59,7 +59,7 @@ const steps = [
   },
   {
     title: 'Command Palette',
-    description: 'Press Ctrl+Space to open the Command Palette — your gateway to everything. Search commands, launch apps, run scripts, and more.',
+    description: 'Press Super+Space to open the Command Palette — your gateway to everything. Search commands, launch apps, run scripts, and more.',
     target: null,
   },
   {
@@ -69,7 +69,7 @@ const steps = [
   },
   {
     title: 'Terminal & Quake Mode',
-    description: 'Press Ctrl+` to open a Quake-style dropdown terminal anywhere. Multiple tabs, Vanta Gold theme, and full PTY support.',
+    description: 'Press Super+` to open a Quake-style dropdown terminal anywhere. Multiple tabs, Vanta Gold theme, and full PTY support.',
     target: null,
   },
   {

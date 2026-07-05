@@ -1,13 +1,13 @@
 [
-  { "action": "command-palette", "keys": "Ctrl+Space", "scope": "global", "profile": "default" },
-  { "action": "toggle-quake-terminal", "keys": "Ctrl+Shift+Space", "scope": "global", "profile": "default" },
-  { "action": "open-group-development", "keys": "Ctrl+Shift+1", "scope": "global", "profile": "default" },
-  { "action": "open-group-gaming", "keys": "Ctrl+Shift+2", "scope": "global", "profile": "default" },
-  { "action": "open-group-media", "keys": "Ctrl+Shift+3", "scope": "global", "profile": "default" },
-  { "action": "open-group-communication", "keys": "Ctrl+Shift+4", "scope": "global", "profile": "default" },
-  { "action": "settings", "keys": "Ctrl+Shift+S", "scope": "global", "profile": "default" },
-  { "action": "clipboard", "keys": "Ctrl+Shift+C", "scope": "global", "profile": "default" },
-  { "action": "notifications", "keys": "Ctrl+Shift+N", "scope": "global", "profile": "default" },
-  { "action": "ai-assistant", "keys": "Ctrl+Shift+A", "scope": "global", "profile": "default" },
-  { "action": "focus-mode", "keys": "Ctrl+Shift+F", "scope": "global", "profile": "default" }
+  { "action": "command-palette", "keys": "Super+Space", "scope": "global", "profile": "default" },
+  { "action": "toggle-quake-terminal", "keys": "Super+Shift+Space", "scope": "global", "profile": "default" },
+  { "action": "open-group-development", "keys": "Super+Shift+1", "scope": "global", "profile": "default" },
+  { "action": "open-group-gaming", "keys": "Super+Shift+2", "scope": "global", "profile": "default" },
+  { "action": "open-group-media", "keys": "Super+Shift+3", "scope": "global", "profile": "default" },
+  { "action": "open-group-communication", "keys": "Super+Shift+4", "scope": "global", "profile": "default" },
+  { "action": "settings", "keys": "Super+Shift+S", "scope": "global", "profile": "default" },
+  { "action": "clipboard", "keys": "Super+Shift+C", "scope": "global", "profile": "default" },
+  { "action": "notifications", "keys": "Super+Shift+N", "scope": "global", "profile": "default" },
+  { "action": "ai-assistant", "keys": "Super+Shift+A", "scope": "global", "profile": "default" },
+  { "action": "focus-mode", "keys": "Super+Shift+F", "scope": "global", "profile": "default" }
 ]

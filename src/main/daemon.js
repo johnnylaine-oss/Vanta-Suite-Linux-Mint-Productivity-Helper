@@ -10,7 +10,8 @@ import { IPC_CHANNELS, IPC_EVENTS } from '../core/ipcContracts.js';
 import logger from '../core/logger.js';
 import { BRAND_NAME } from '../config/brand.js';
 import { createWindow, getMainWindow } from './windowManager.js';
-import { createTray, updateTrayMenu } from './tray.js';
+import { createTray, updateTrayMenu, getBaseTrayIconDataUrl, setTrayImage as setTrayImageFromUrl, resetTrayImage } from './tray.js';
+import { applyAutostart } from './autostart.js';
 import { initHotkeyEngine, destroyHotkeyEngine, handleAppKeyEvent } from './hotkeyEngine.js';
 import {
   executeCommand, getAllCommands, addCommand, updateCommand, removeCommand,
@@ -55,11 +56,50 @@ function loadSettings() {
 }
 function saveSettings(settings) { try { writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf-8'); } catch {} }
 
+/**
+ * Set a value on a nested object using dot notation: setNested(o, "a.b.c", v)
+ * mutates `o` so that o.a.b.c === v. Unknown intermediate keys become objects.
+ */
+function setNested(obj, dottedPath, value) {
+  const parts = String(dottedPath || '').split('.').filter(Boolean);
+  if (parts.length === 0) return;
+  let cursor = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (cursor[parts[i]] == null || typeof cursor[parts[i]] !== 'object') {
+      cursor[parts[i]] = {};
+    }
+    cursor = cursor[parts[i]];
+  }
+  cursor[parts[parts.length - 1]] = value;
+}
+
 function registerIpcHandlers() {
   // Settings
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (_e, key) => { const s = loadSettings(); return key ? s[key] : s; });
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_e, key, value) => { const s = loadSettings(); s[key] = value; saveSettings(s); return true; });
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_e, key, value) => {
+    const s = loadSettings();
+    setNested(s, key, value);
+    saveSettings(s);
+    // Side-effect: when "Launch on Login" changes, toggle XDG autostart entry.
+    if (key === 'startup.launchOnLogin') {
+      applyAutostart(Boolean(value));
+    }
+    return true;
+  });
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_ALL, () => loadSettings());
+
+  // Tray badge — renderer composites base icon + count and ships back as data URL.
+  // The renderer pulls {count, baseIconDataUrl} via TRAY_READY after mount, which
+  // sidesteps a race where webContents.send fires before the IPC listener is set up.
+  ipcMain.handle(IPC_CHANNELS.TRAY_SET_ICON, (_e, dataUrl) => {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return false;
+    return setTrayImageFromUrl(dataUrl);
+  });
+  ipcMain.handle(IPC_CHANNELS.TRAY_GET_ICON, () => getBaseTrayIconDataUrl());
+  ipcMain.handle(IPC_CHANNELS.TRAY_READY, () => {
+    const count = getNotificationHistory().length;
+    return { count, baseIconDataUrl: getBaseTrayIconDataUrl() };
+  });
 
   // Commands
   ipcMain.handle(IPC_CHANNELS.COMMAND_GET_ALL, () => getAllCommands());
@@ -116,9 +156,23 @@ function registerIpcHandlers() {
 
   // --- Notifications ---
   ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_GET_HISTORY, () => getNotificationHistory());
-  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_SHOW, (_e, n) => { addNotification(n.content, n.variant, n.appName); const w = getMainWindow(); if (w) w.webContents.send(IPC_EVENTS.NOTIFICATION_ARRIVED, n); return true; });
-  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_DISMISS, (_e, id) => dismissNotification(id));
-  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_PIN, (_e, id) => pinNotification(id));
+  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_SHOW, (_e, n) => {
+    addNotification(n.content, n.variant, n.appName);
+    const w = getMainWindow();
+    if (w) {
+      w.webContents.send(IPC_EVENTS.NOTIFICATION_ARRIVED, n);
+      broadcastTrayBadge();
+    }
+    return true;
+  });
+  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_DISMISS, (_e, id) => {
+    dismissNotification(id);
+    broadcastTrayBadge();
+  });
+  ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_PIN, (_e, id) => {
+    pinNotification(id);
+    broadcastTrayBadge();
+  });
   ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_MUTE_APP, (_e, appName) => { /* Future: store muted apps in settings */ return true; });
   ipcMain.handle(IPC_CHANNELS.NOTIFICATIONS_UNMUTE_APP, (_e, appName) => { return true; });
 
@@ -146,6 +200,23 @@ function registerIpcHandlers() {
 }
 
 // --- App Lifecycle ---
+
+/**
+ * Push the current notification count to the renderer so it can re-render
+ * the tray icon with a badge. Also recomputes the count from the store so
+ * dismissals propagate.
+ */
+function broadcastTrayBadge() {
+  const win = getMainWindow();
+  if (!win || win.isDestroyed() || !win.webContents) return;
+  const count = getNotificationHistory().length;
+  if (win.webContents.isDestroyed()) return;
+  win.webContents.send(IPC_EVENTS.TRAY_BADGE_UPDATE, {
+    count,
+    baseIconDataUrl: getBaseTrayIconDataUrl(),
+  });
+}
+
 app.whenReady().then(async () => {
   logger.info('daemon', `Starting ${BRAND_NAME} daemon...`);
   ensureDataDirs();
@@ -158,6 +229,14 @@ app.whenReady().then(async () => {
   // Show window unless launched in background mode or user setting says minimize
   const isBackground = process.env.VANTA_BACKGROUND === '1';
   if (!isBackground && !settings.startup?.launchMinimized) win.show();
+
+  // Apply auto-launch state from settings on every startup so ~/.config/autostart
+  // stays in sync with the persisted preference.
+  applyAutostart(Boolean(settings.startup?.launchOnLogin));
+
+  // Initial badge state is pulled by the renderer via TRAY_READY after mount
+  // (so the listener is in place when the snapshot arrives) — this avoids the
+  // race where webContents.send fires before Vue's onMounted registers the handler.
 
   app.on('second-instance', () => { const w = getMainWindow(); if (w) { if (w.isMinimized()) w.restore(); w.show(); w.focus(); } });
   win.on('show', () => updateTrayMenu(tray, win, true));

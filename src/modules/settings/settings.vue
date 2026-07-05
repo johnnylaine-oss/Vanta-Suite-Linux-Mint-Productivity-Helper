@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import VToolbar from '../../design-system/components/VToolbar.vue';
 import VButton from '../../design-system/components/VButton.vue';
 import VIconButton from '../../design-system/components/VIconButton.vue';
@@ -212,6 +212,15 @@ async function deleteCommand(cmd) {
 onMounted(() => {
   store.load();
   loadCommands();
+});
+
+// Persist startup toggles back to settings.startup.* — dot-path keys. The daemon
+// applies the XDG autostart entry on `startup.launchOnLogin` changes.
+watch(() => store.settings.startupLaunchOnLogin, (v) => {
+  store.save('startup.launchOnLogin', v);
+});
+watch(() => store.settings.startupMinimized, (v) => {
+  store.save('startup.launchMinimized', v);
 });
 </script>
 

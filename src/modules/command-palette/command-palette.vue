@@ -6,7 +6,7 @@
       </template>
     </VToolbar>
     <div class="module-body">
-      <p class="module-text">The Command Palette is always accessible via <kbd>Ctrl+Space</kbd>.</p>
+      <p class="module-text">The Command Palette is always accessible via <kbd>Super+Space</kbd>.</p>
       <p class="module-text">Type any command, app name, or system action and press Enter.</p>
     </div>
   </div>

@@ -1,5 +1,9 @@
 <template>
   <div class="app-shell" :data-theme="theme">
+    <!-- Hidden canvas used to render the tray icon with a notification badge.
+         The compositor runs at 128x128 and ships the result back to the main
+         process via window.vanta.tray.setIcon(). -->
+    <canvas ref="trayCanvas" width="128" height="128" class="app-tray-canvas" aria-hidden="true"></canvas>
     <VWindow
       :title="'Vanta Suite'"
       :focused="true"
@@ -27,7 +31,7 @@
             <transition name="page-fade" mode="out-in">
               <component :is="activeComponent" v-if="activeComponent" :key="activeModule" />
               <div v-else key="welcome" class="app-welcome">                <h1 class="app-welcome__title">Vanta Suite</h1>
-                <p class="app-welcome__subtitle">Press <kbd>Ctrl+Space</kbd> to open the Command Palette</p>
+                <p class="app-welcome__subtitle">Press <kbd>Super+Space</kbd> to open the Command Palette</p>
                 <div class="app-welcome__actions">
                   <VButton variant="primary" @click="navigateTo('settings')">Open Settings</VButton>
                   <VButton variant="secondary" @click="navigateTo('favorites')">Favorites</VButton>
@@ -95,6 +99,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, shallowRef, reactive } from 'vue';
+import { colors } from '../design-system/tokens.js';
 import VWindow from '../design-system/components/VWindow.vue';
 import VIconButton from '../design-system/components/VIconButton.vue';
 import VButton from '../design-system/components/VButton.vue';
@@ -112,6 +117,7 @@ const paletteVisible = ref(false);
 const shortcutsVisible = ref(false);
 const tourVisible = ref(false);
 const theme = ref('dark');
+const trayCanvas = ref(null);
 
 // Lazy-loaded module components
 const moduleComponents = shallowRef({});
@@ -322,6 +328,145 @@ function onMinimizeToTray() { window.vanta?.window?.hide(); }
 function onMaximize() { window.vanta?.window?.maximize(); }
 function onClose() { window.vanta?.window?.hide(); }
 
+// --- Tray badge compositor ---
+// Receives { count, baseIconDataUrl } from the main process, draws the base
+// icon plus a Vanta Gold-themed badge in the bottom-right, and sends the
+// resulting data URL back via window.vanta.tray.setIcon().
+let _trayBaseImage = null;
+let _trayLastCount = -1;
+
+function ensureBaseImage(src) {
+  if (_trayBaseImage && _trayBaseImage.src === src) return _trayBaseImage;
+  const img = new Image();
+  img.src = src;
+  _trayBaseImage = img;
+  return img;
+}
+
+/**
+ * Pick a font size that keeps the count text inside the inner badge
+ * circle. Returns size in pixels for the given inner radius.
+ */
+function pickBadgeFontSize(ctx, text, innerRadius) {
+  const minSize = 12;
+  const maxSize = Math.floor(innerRadius * 1.35);
+  // Start large, shrink until the measured width fits the inner diameter.
+  for (let size = maxSize; size >= minSize; size -= 1) {
+    ctx.font = `bold ${size}px "JetBrains Mono", "Helvetica Neue", sans-serif`;
+    if (ctx.measureText(text).width <= innerRadius * 1.55) return size;
+  }
+  return minSize;
+}
+
+function drawTrayBadge(canvas, count) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (_trayBaseImage && _trayBaseImage.complete && _trayBaseImage.naturalWidth > 0) {
+    ctx.drawImage(_trayBaseImage, 0, 0, canvas.width, canvas.height);
+  } else {
+    // Base icon still loading — skip badge rendering this turn.
+    return null;
+  }
+
+  if (count <= 0) return canvas.toDataURL('image/png');
+
+  const size = canvas.width;
+  const cx = size * 0.78;
+  const cy = size * 0.78;
+  const outerRadius = size * 0.27;
+  const ringThickness = Math.max(2, size * 0.026);
+  const innerRadius = outerRadius - ringThickness;
+
+  // ---------- Outer halo: gold-bright so the ring reads as a warm outline ----------
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerRadius + ringThickness * 0.55, 0, Math.PI * 2);
+  ctx.fillStyle = colors.goldBright;
+  ctx.fill();
+
+  // ---------- Drop shadow under the badge for depth (only the ring casts) ----------
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+  ctx.shadowBlur = size * 0.035;
+  ctx.shadowOffsetY = size * 0.012;
+
+  // ---------- Ring fill: gold metal gradient (bright → core → deep) ----------
+  const ringGrad = ctx.createRadialGradient(
+    cx - outerRadius * 0.35, cy - outerRadius * 0.45, outerRadius * 0.15,
+    cx, cy, outerRadius,
+  );
+  ringGrad.addColorStop(0, colors.goldBright);
+  ringGrad.addColorStop(0.5, colors.goldCore);
+  ringGrad.addColorStop(1, colors.goldDeep);
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+  ctx.fillStyle = ringGrad;
+  ctx.fill();
+
+  ctx.restore(); // clear shadow before drawing on the inner fill
+
+  // ---------- Inner filled center: dark surface for text contrast ----------
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+  ctx.fillStyle = colors.bgSurface;
+  ctx.fill();
+
+  // ---------- Inner subtle highlight: warm gold glow from upper-left ----------
+  const innerGlow = ctx.createRadialGradient(
+    cx - innerRadius * 0.45, cy - innerRadius * 0.45, 0,
+    cx, cy, innerRadius,
+  );
+  innerGlow.addColorStop(0, 'rgba(244, 214, 140, 0.28)');
+  innerGlow.addColorStop(0.7, 'rgba(212, 175, 55, 0.05)');
+  innerGlow.addColorStop(1, 'rgba(212, 175, 55, 0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+  ctx.fillStyle = innerGlow;
+  ctx.fill();
+
+  // ---------- Count text: gold-bright on dark center, sized to inner ring ----------
+  const label = count > 99 ? '99+' : String(count);
+  const fontSize = pickBadgeFontSize(ctx, label, innerRadius);
+  ctx.font = `bold ${fontSize}px "JetBrains Mono", "Helvetica Neue", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = colors.goldBright;
+  ctx.fillText(label, cx, cy + 1);
+
+  return canvas.toDataURL('image/png');
+}
+
+function waitForImage(img, timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    if (img.complete && img.naturalWidth > 0) return resolve(true);
+    let settled = false;
+    const done = (ok) => { if (!settled) { settled = true; resolve(ok); } };
+    img.onload = () => done(true);
+    img.onerror = () => done(false);
+    setTimeout(() => done(false), timeoutMs);
+  });
+}
+
+async function updateTrayBadge({ count, baseIconDataUrl }) {
+  if (!trayCanvas.value || !window.vanta?.tray?.setIcon) return;
+  // Guard only on count so baseIconDataUrl refreshes still apply.
+  if (_trayLastCount === count) return;
+
+  if (baseIconDataUrl && (!_trayBaseImage || _trayBaseImage.src !== baseIconDataUrl)) {
+    ensureBaseImage(baseIconDataUrl);
+  }
+  if (!_trayBaseImage) return;
+  await waitForImage(_trayBaseImage);
+  if (!_trayBaseImage || _trayBaseImage.naturalWidth === 0) return;
+
+  const dataUrl = drawTrayBadge(trayCanvas.value, count);
+  if (dataUrl) {
+    _trayLastCount = count;
+    try { await window.vanta.tray.setIcon(dataUrl); } catch {}
+  }
+}
+
 // --- Onboarding ---
 function onTourFinish() {
   window.vanta?.settings?.set('onboardingComplete', true);
@@ -369,6 +514,16 @@ onMounted(async () => {
   window.vanta?.on?.('module:open-requested', (module) => {
     navigateTo(module);
   });
+
+  // Tray badge — main process pushes current count whenever notifications change.
+  window.vanta?.on?.('tray:badge-update', updateTrayBadge);
+
+  // Pull initial state after mount so the renderer doesn't miss the first
+  // broadcast (listener subscribed here, daemon returns fresh snapshot via invoke).
+  try {
+    const initial = await window.vanta?.tray?.ready?.();
+    if (initial) updateTrayBadge(initial);
+  } catch {}
 
   const onKeydown = (e) => {
     // App-focused shortcut forwarding: send modifier combos to main process
@@ -436,6 +591,7 @@ onMounted(async () => {
 .confirm-modal__detail code { font-family: var(--font-mono); font-size: 13px; color: var(--gold-core); background: var(--bg-surface-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); display: block; word-break: break-all; }
 .app-statusbar__right { display: inline-flex; align-items: center; gap: var(--space-1); }
 .app-statusbar__version { color: var(--text-tertiary); }
+.app-tray-canvas { position: absolute; left: -9999px; top: -9999px; width: 128px; height: 128px; pointer-events: none; }
 
 /* Page transitions */
 .page-fade-enter-active { transition: opacity 0.15s ease-out, transform 0.15s ease-out; }

@@ -181,6 +181,13 @@ const api = {
     sendHotkey: (accel) => ipcRenderer.send(IPC_CHANNELS.HOTKEY_REGISTER, accel),
   },
 
+  // --- Tray ---
+  tray: {
+    setIcon: (dataUrl) => ipcRenderer.invoke(IPC_CHANNELS.TRAY_SET_ICON, dataUrl),
+    getIcon: () => ipcRenderer.invoke(IPC_CHANNELS.TRAY_GET_ICON),
+    ready: () => ipcRenderer.invoke(IPC_CHANNELS.TRAY_READY),
+  },
+
   // --- Shell ---
   shell: {
     exec: (command, requiresConfirmation) =>
