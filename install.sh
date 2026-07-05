@@ -1,6 +1,7 @@
 #!/bin/bash
 # Vanta Suite — Install Script
 # Installs all dependencies and build tools for Linux Mint Cinnamon.
+# Also installs desktop launcher entry.
 
 set -e
 
@@ -14,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Step 1: System dependencies ──────────────────────────────────
-echo "📦 Step 1/4: Installing system build tools..."
+echo "📦 Step 1/5: Installing system build tools..."
 echo "   (sudo may prompt for your password)"
 echo ""
 
@@ -33,6 +34,7 @@ if command -v apt-get &> /dev/null; then
     xdg-utils \
     wmctrl \
     curl \
+    libfuse2 \
     2>&1 | tail -3
   echo "   ✅ System packages installed"
 else
@@ -42,7 +44,7 @@ fi
 
 # ── Step 2: Node.js check ────────────────────────────────────────
 echo ""
-echo "📦 Step 2/4: Checking Node.js..."
+echo "📦 Step 2/5: Checking Node.js..."
 
 NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1 || echo "0")
 
@@ -57,15 +59,14 @@ echo "   ✅ Node.js $(node --version)"
 
 # ── Step 3: npm install ──────────────────────────────────────────
 echo ""
-echo "📦 Step 3/4: Installing npm dependencies..."
-echo "   (This may take a minute for native modules like better-sqlite3)"
+echo "📦 Step 3/5: Installing npm dependencies..."
 
 npm install --legacy-peer-deps 2>&1 | tail -5
 echo "   ✅ npm dependencies installed"
 
 # ── Step 4: Build ────────────────────────────────────────────────
 echo ""
-echo "📦 Step 4/4: Building the app..."
+echo "📦 Step 4/5: Building the app..."
 
 # Ensure data directories exist
 mkdir -p data/config/profiles data/commands data/workflows data/plugins data/db data/logs
@@ -82,19 +83,61 @@ if [ ! -f data/config/shortcuts.json ]; then
 ]' > data/config/shortcuts.json
 fi
 
-# Build the Vite frontend
+# Build Vite renderer
 npx vite build 2>&1 | tail -5
+echo "   ✅ App built"
+
+# ── Step 5: Install desktop launcher ─────────────────────────────
+echo ""
+echo "📦 Step 5/5: Installing desktop entry..."
+
+# Make launcher executable
+chmod +x vanta-suite.sh
+
+# Install desktop entry for app menu
+APPS_DIR="$HOME/.local/share/applications"
+mkdir -p "$APPS_DIR"
+
+cat > "$APPS_DIR/vanta-suite.desktop" << DESKTOPEOF
+[Desktop Entry]
+Name=Vanta Suite
+Comment=A keyboard-first productivity suite for Linux Mint
+Exec=$SCRIPT_DIR/vanta-suite.sh
+Icon=$SCRIPT_DIR/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;Development;
+Keywords=productivity;command-palette;terminal;clipboard;workflow;
+StartupWMClass=Vanta Suite
+DESKTOPEOF
+
+# Install symlink to PATH so user can run 'vanta-suite' from terminal
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+ln -sf "$SCRIPT_DIR/vanta-suite.sh" "$BIN_DIR/vanta-suite"
+
+echo "   ✅ Desktop entry installed — find Vanta Suite in your app menu"
+echo "   ✅ Terminal launcher: run 'vanta-suite' from anywhere"
+
+# Check if PATH includes ~/.local/bin
+if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+  echo ""
+  echo "   💡 Add this to your ~/.bashrc for the 'vanta-suite' command:"
+  echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  ✅ Installation complete!"
 echo ""
-echo "  To start Vanta Suite:"
+echo "  🖥️  Find Vanta Suite in your app menu"
+echo "  🖱️  Or double-click vanta-suite.sh"
+echo ""
+echo "  ⌨️  Or run from terminal:"
+echo "    vanta-suite"
 echo "    npm start"
 echo ""
-echo "  To run in development mode with hot-reload:"
-echo "    npm run dev"
-echo ""
-echo "  To build a distributable package:"
+echo "  🔨 To build a standalone AppImage:"
 echo "    npm run build"
+echo "    # AppImage is at: release/Vanta Suite-1.0.0.AppImage"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
