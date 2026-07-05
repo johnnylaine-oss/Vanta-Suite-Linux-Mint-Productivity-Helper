@@ -89,7 +89,7 @@ echo "   ✅ App built"
 
 # ── Step 5: Install desktop launcher ─────────────────────────────
 echo ""
-echo "📦 Step 5/5: Installing desktop entry..."
+echo "📦 Step 5/6: Installing desktop entry + autostart..."
 
 # Make launcher executable
 chmod +x vanta-suite.sh
@@ -111,12 +111,32 @@ Keywords=productivity;command-palette;terminal;clipboard;workflow;
 StartupWMClass=Vanta Suite
 DESKTOPEOF
 
+# Install autostart entry (launches minimized to tray on login)
+AUTOSTART_DIR="$HOME/.config/autostart"
+mkdir -p "$AUTOSTART_DIR"
+
+cat > "$AUTOSTART_DIR/vanta-suite-autostart.desktop" << AUTOEOF
+[Desktop Entry]
+Name=Vanta Suite (Daemon)
+Comment=Background daemon for Vanta Suite — starts minimized to tray on login
+Exec=$SCRIPT_DIR/vanta-suite.sh --background
+Icon=$SCRIPT_DIR/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupWMClass=Vanta Suite
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
+NoDisplay=true
+AUTOEOF
+
 # Install symlink to PATH so user can run 'vanta-suite' from terminal
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
 ln -sf "$SCRIPT_DIR/vanta-suite.sh" "$BIN_DIR/vanta-suite"
 
 echo "   ✅ Desktop entry installed — find Vanta Suite in your app menu"
+echo "   ✅ Autostart enabled — Vanta Suite runs on login (minimized to tray)"
 echo "   ✅ Terminal launcher: run 'vanta-suite' from anywhere"
 
 # Check if PATH includes ~/.local/bin
@@ -130,14 +150,20 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  ✅ Installation complete!"
 echo ""
+echo "  🔁 Vanta Suite will now auto-start when you log in"
+echo "     (minimized to tray — global hotkeys work instantly)"
+echo ""
 echo "  🖥️  Find Vanta Suite in your app menu"
 echo "  🖱️  Or double-click vanta-suite.sh"
 echo ""
 echo "  ⌨️  Or run from terminal:"
-echo "    vanta-suite"
+echo "    vanta-suite               # Normal launch"
+echo "    vanta-suite --background  # Launch minimized to tray"
 echo "    npm start"
 echo ""
 echo "  🔨 To build a standalone AppImage:"
 echo "    npm run build"
 echo "    # AppImage is at: release/Vanta Suite-1.0.0.AppImage"
+echo ""
+echo "  📖 Full user guide: USER_GUIDE.md"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

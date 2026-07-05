@@ -6,6 +6,7 @@ import { BrowserWindow, app } from 'electron';
 import { join, dirname } from 'path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
+import http from 'http';
 import logger from '../core/logger.js';
 import { BRAND_NAME, WINDOW_TITLE } from '../config/brand.js';
 
@@ -60,7 +61,9 @@ export function createWindow(settings = {}) {
   // Load the renderer
   const isDev = !app.isPackaged;
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    // Fire-and-forget: ready-to-show event handles timing — window shows
+    // only after the renderer has loaded (from dev server or built files).
+    loadDevRenderer(mainWindow);
   } else {
     mainWindow.loadFile(join(__dirname, '..', '..', 'dist', 'renderer', 'index.html'));
   }
@@ -164,4 +167,35 @@ export function setQuitting(flag) {
 
 function isQuitting() {
   return quittingFlag;
+}
+
+/**
+ * Try loading from the Vite dev server. If unavailable, fall back to built files.
+ */
+async function loadDevRenderer(win) {
+  const devUrl = 'http://localhost:5173';
+  const builtPath = join(__dirname, '..', '..', 'dist', 'renderer', 'index.html');
+
+  try {
+    // Quick check if dev server is reachable (1 second timeout)
+    await new Promise((resolve, reject) => {
+      const req = http.get(devUrl, (res) => {
+        res.resume();
+        resolve();
+      });
+      req.on('error', reject);
+      req.setTimeout(1000, () => { req.destroy(); reject(new Error('timeout')); });
+    });
+    logger.info('window-manager', 'Vite dev server found, loading from localhost:5173');
+    win.loadURL(devUrl);
+  } catch {
+    // Dev server not available — fall back to built files
+    logger.info('window-manager', 'Vite dev server not available, loading from built files');
+    if (existsSync(builtPath)) {
+      win.loadFile(builtPath);
+    } else {
+      logger.warn('window-manager', 'No built files found — run vite build first');
+      win.loadURL(devUrl); // Last resort: try anyway (will show error page)
+    }
+  }
 }

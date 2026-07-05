@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Vanta Suite (Daemon)
+Comment=Background daemon for Vanta Suite — starts minimized to tray on login
+Exec=@PROJECT_DIR@/vanta-suite.sh --background
+Icon=@PROJECT_DIR@/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupWMClass=Vanta Suite
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
+NoDisplay=true

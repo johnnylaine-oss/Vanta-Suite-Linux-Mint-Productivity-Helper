@@ -150,7 +150,9 @@ app.whenReady().then(async () => {
   await pluginApi.loadAll();
   const win = createWindow(settings);
   tray = createTray(win);
-  if (!settings.startup?.launchMinimized) win.show();
+  // Show window unless launched in background mode or user setting says minimize
+  const isBackground = process.env.VANTA_BACKGROUND === '1';
+  if (!isBackground && !settings.startup?.launchMinimized) win.show();
 
   app.on('second-instance', () => { const w = getMainWindow(); if (w) { if (w.isMinimized()) w.restore(); w.show(); w.focus(); } });
   win.on('show', () => updateTrayMenu(tray, win, true));

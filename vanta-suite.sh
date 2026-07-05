@@ -1,10 +1,29 @@
 #!/bin/bash
 # Vanta Suite — Desktop Launcher
 # Double-click this file (or run from terminal) to start Vanta Suite.
-# Make sure npm install has been run first.
+#
+# Usage:
+#   ./vanta-suite.sh              Normal launch (window shown)
+#   ./vanta-suite.sh --background Start minimized to tray (for autostart)
+#   ./vanta-suite.sh --minimized   Same as --background
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+# Parse flags
+LAUNCH_MODE="normal"
+for arg in "$@"; do
+  case "$arg" in
+    --background|--minimized|--tray)
+      LAUNCH_MODE="background"
+      ;;
+  esac
+done
+
+# Use env var for background mode (doesn't persist to settings.json)
+if [ "$LAUNCH_MODE" = "background" ]; then
+  export VANTA_BACKGROUND=1
+fi
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
